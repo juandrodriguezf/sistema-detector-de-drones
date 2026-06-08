@@ -1,6 +1,6 @@
 # Sistema Detector de Drones
 
-Sistema de detección acústica de drones con PIC16F18426 y frontend React.
+Sistema de detección y neutralización acústica de drones. Usa un micrófono conectado al PC para capturar audio en tiempo real, analizarlo mediante FFT en el navegador (Web Audio API), y detectar la firma espectral de un dron. Cuando se confirma la detección, envía una señal de STOP a dos sistemas motorizados (rotacional y traslacional) controlados por PICs independientes vía UART. Al perder la señal del dron, reanuda el barrido de búsqueda automáticamente.
 
 ## Componentes
 
@@ -11,22 +11,45 @@ Sistema de detección acústica de drones con PIC16F18426 y frontend React.
 | [`tralac.X/`](./tralac.X) | Firmware PIC — eje traslacional (NEMA 17 + A4988) |
 | [`cmake/`](./cmake) | Configuración CMake para toolchain XC8 |
 
-## Arquitectura
+## Arquitectura del sistema
 
 ```
-Micrófono (USB → PC)
-     │
-     ▼
+Micrófono MAX4466
+      │
+      ▼
+Tarjeta de audio USB → PC
+      │
+      ▼
 Web Audio API → FFT → Detección (genérica o template)
-     │
-     ▼
+      │
+      ▼
 ¿Dron detectado? ──SÍ──→ STOP ambos PICs
-     │
-     NO (reanudar barrido)
-     ↓
-PIC Rotacional (USB)     PIC Traslacional (USB)
-   m3.X                     tralac.X
+      │
+      NO (reanudar barrido)
+      ↓
+┌─────────────────────────────────────┐
+│         ESTRUCTURA MECÁNICA         │
+│                                     │
+│  Eje Rotacional (m3.X)             │
+│  Motor brushless 57BLDC75E-20730   │
+│  Driver ZSX11H + PID a 120Hz       │
+│  ● Sostiene todo el sistema        │
+│  ● Rota 360°                       │
+│  ● Apunta la dirección del mic     │
+│         │                          │
+│         ▼                          │
+│  Eje Traslacional (tralac.X)       │
+│  Motor NEMA 17 + A4988             │
+│  ● Micrófono montado aquí          │
+│  ● Acople: 0mm → 0°, 200mm → 90°  │
+│  ● Barrido vertical del mic       │
+└─────────────────────────────────────┘
 ```
+
+### Modos de detección
+
+- **Genérico**: mide la energía en la banda 600–900 Hz
+- **Personalizado (template)**: el usuario carga un audio de dron, el sistema extrae su huella espectral (promedio FFT + picos armónicos) y la compara en vivo contra el micrófono usando similitud coseno y coincidencia de armónicos
 
 ## Mapa de conexiones
 
@@ -81,7 +104,7 @@ ENABLE del A4988 va a GND (siempre habilitado).
 
 - 2 × PIC16F18426 (programados con los firmwares respectivos)
 - 2 × cables USB-UART
-- Micrófono direccional con salida USB
+- Micrófono MAX4466 con tarjeta de audio USB
 - Toolchain: XC8 v3.10, MPLAB X v6.30
 
 ## Licencia
