@@ -1,0 +1,44 @@
+.diagnostics-panel {
+  flex-shrink: 0;
+}
+
+.diagnostics-content {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--grid-line);
+}
+
+.diag-row:last-child {
+  border-bottom: none;
+}
+
+.diag-label {
+  color: var(--text-secondary);
+}
+
+.diag-value {
+  color: var(--text-mono);
+  text-align: right;
+}
+
+.diag-alert {
+  color: var(--alert-red-glow);
+}
+
+.diag-ok {
+  color: var(--accent-olive-glow);
+}
+
+.diag-dim {
+  color: var(--text-secondary);
+}

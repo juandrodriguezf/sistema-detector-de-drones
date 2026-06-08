@@ -1,0 +1,131 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  border-top: 2px solid var(--accent-olive);
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-icon {
+  font-size: 24px;
+  color: var(--accent-olive);
+  opacity: 0.8;
+}
+
+.header-title {
+  font-size: 18px;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.header-subtitle {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+.header-status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-ok { background: var(--accent-olive); box-shadow: 0 0 4px var(--accent-olive); }
+.dot-idle { background: var(--text-secondary); }
+.dot-alert { background: var(--alert-red); box-shadow: 0 0 4px var(--alert-red); }
+.dot-warn { background: #f39c12; }
+
+.status-badge.alert {
+  border-color: rgba(192, 57, 43, 0.3);
+}
+
+.detection-range {
+  border-color: var(--alert-red);
+  color: var(--alert-red);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.audio-device-badge {
+  max-width: 240px;
+  overflow: hidden;
+}
+
+.audio-device-info {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-device-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-mono);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  outline: none;
+  max-width: 180px;
+  cursor: pointer;
+}
+
+.audio-device-select:focus {
+  border-color: var(--accent-olive);
+}
+
+.audio-device-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.sim-badge {
+  border-color: rgba(79, 195, 247, 0.4);
+  color: #4fc3f7;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+.mode-badge {
+  border-color: var(--accent-olive-dim);
+  color: var(--accent-olive-glow);
+  font-size: 9px !important;
+  letter-spacing: 1px;
+}
+
+.header-time {
+  font-size: 14px;
+  color: var(--accent-olive-glow);
+  min-width: 80px;
+  text-align: right;
+}
+
