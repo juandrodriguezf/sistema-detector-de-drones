@@ -122,6 +122,38 @@
   letter-spacing: 1px;
 }
 
+.ml-badge {
+  border-color: rgba(79, 195, 247, 0.4);
+  color: #4fc3f7;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+.nav-badge {
+  text-decoration: none;
+  border-color: var(--accent-olive-dim);
+  color: var(--accent-olive-glow);
+  font-size: 10px !important;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-badge:hover {
+  background: rgba(107, 140, 66, 0.1);
+  border-color: var(--accent-olive);
+}
+
+.nav-badge.wip {
+  border-color: rgba(243, 156, 18, 0.45);
+  color: #f39c12;
+}
+
+.nav-badge.wip:hover {
+  background: rgba(243, 156, 18, 0.1);
+  border-color: #f39c12;
+}
+
 .header-time {
   font-size: 14px;
   color: var(--accent-olive-glow);

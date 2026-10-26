@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 import { AudioEngine } from '../audio/audioEngine'
+import { extractMFCC, mfccToArray } from '../utils/audioFeatures'
+import { predict, type MLPWeights } from '../utils/mlp'
 
 function spectralSimilarity(a: Float32Array, b: Float32Array, hzPerBin: number): number {
   const n = Math.min(a.length, b.length)
@@ -113,8 +115,8 @@ interface SerialContextType {
   setRotaSweeping: (v: boolean) => void
   setTransSweeping: (v: boolean) => void
   confirmFrames: number
-  detectionMode: 'generic' | 'custom'
-  setDetectionMode: (mode: 'generic' | 'custom') => void
+  detectionMode: 'generic' | 'custom' | 'ml'
+  setDetectionMode: (mode: 'generic' | 'custom' | 'ml') => void
   template: Float32Array | null
   templateName: string
   similarity: number
@@ -129,6 +131,14 @@ interface SerialContextType {
   matchingPeaks: number
   minMatchingPeaks: number
   setMinMatchingPeaks: (v: number) => void
+  // ML detection
+  mlModel: MLPWeights | null
+  setMLModel: (model: MLPWeights | null) => void
+  mlConfidence: number
+  mlOnThreshold: number
+  mlOffThreshold: number
+  setMLOnThreshold: (v: number) => void
+  setMLOffThreshold: (v: number) => void
 }
 
 const SerialContext = createContext<SerialContextType | undefined>(undefined)
@@ -172,8 +182,8 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
   const offSimilarityRef = useRef(OFF_SIMILARITY_DEFAULT)
 
   // Template matching
-  const [detectionMode, setDetectionMode] = useState<'generic' | 'custom'>('generic')
-  const detectionModeRef = useRef<'generic' | 'custom'>('generic')
+  const [detectionMode, setDetectionMode] = useState<'generic' | 'custom' | 'ml'>('generic')
+  const detectionModeRef = useRef<'generic' | 'custom' | 'ml'>('generic')
   const [template, setTemplateState] = useState<Float32Array | null>(null)
   const [templateName, setTemplateName] = useState('')
   const templateRef = useRef<Float32Array | null>(null)
@@ -184,6 +194,17 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
   const [minMatchingPeaks, setMinMatchingPeaks] = useState(2)
   const minMatchingPeaksRef = useRef(2)
   const PEAK_TOLERANCE = 30
+
+  // ML detection
+  const [mlModel, setMLModelState] = useState<MLPWeights | null>(null)
+  const mlModelRef = useRef<MLPWeights | null>(null)
+  const [mlConfidence, setMLConfidence] = useState(0)
+  const mlConfidenceRef = useRef(0)
+  const [mlOnThreshold, setMLOnThreshold] = useState(0.9)
+  const mlOnThresholdRef = useRef(0.9)
+  const [mlOffThreshold, setMLOffThreshold] = useState(0.5)
+  const mlOffThresholdRef = useRef(0.5)
+  const lastFloatFreqRef = useRef<Float32Array>(new Float32Array(2048))
 
   const DISPLAY_BINS = 64
   const SPECTROGRAM_COLS = 64
@@ -355,6 +376,9 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
     setDbMax(newDbMax)
     setWaveformData(Array.from(timeData))
 
+    // Save float data for ML calibration page
+    lastFloatFreqRef.current = floatData
+
     // Compute similarity if in custom mode with template
     let similarityVal = 0
     let peaksMatch = 0
@@ -372,13 +396,28 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
     setSimilarity(similarityVal)
     setMatchingPeaks(peaksMatch)
 
+    // ML inference if in ML mode with loaded model
+    let mlProbVal = 0
+    const isML = detectionModeRef.current === 'ml' && mlModelRef.current !== null
+    if (isML) {
+      const mfcc = extractMFCC(floatData, SAMPLE_RATE, FFT_SIZE)
+      const probs = predict(mfccToArray(mfcc), mlModelRef.current!)
+      mlProbVal = probs[1]
+      mlConfidenceRef.current = mlProbVal
+      setMLConfidence(mlProbVal)
+    }
+
     const wasDetected = droneDetectedRef.current
 
     let triggerOn = false
     let triggerOff = false
     let debugInfo = ''
 
-    if (isCustom) {
+    if (isML) {
+      triggerOn = mlProbVal > mlOnThresholdRef.current
+      triggerOff = mlProbVal < mlOffThresholdRef.current
+      debugInfo = `ML=${(mlProbVal * 100).toFixed(0)}%`
+    } else if (isCustom) {
       const simOk = similarityVal > onSimilarityRef.current
       const peaksOk = tplPeaks.length === 0 || peaksMatch >= minMatchingPeaksRef.current
       triggerOn = simOk && peaksOk
@@ -680,12 +719,12 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
         },
         confirmFrames,
         detectionMode,
-        setDetectionMode: (mode: 'generic' | 'custom') => {
+        setDetectionMode: (mode: 'generic' | 'custom' | 'ml') => {
           setDetectionMode(mode)
           detectionModeRef.current = mode
           setConfirmFrames(0)
           confirmFramesRef.current = 0
-          if (mode === 'generic') {
+          if (mode === 'generic' || mode === 'custom') {
             setDroneDetected(false)
             droneDetectedRef.current = false
           }
@@ -717,6 +756,25 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
           const clamped = Math.max(1, Math.min(10, v))
           setMinMatchingPeaks(clamped)
           minMatchingPeaksRef.current = clamped
+        },
+        // ML detection
+        mlModel,
+        setMLModel: (model: MLPWeights | null) => {
+          setMLModelState(model)
+          mlModelRef.current = model
+        },
+        mlConfidence,
+        mlOnThreshold,
+        mlOffThreshold,
+        setMLOnThreshold: (v: number) => {
+          const clamped = Math.max(0.1, Math.min(0.99, v))
+          setMLOnThreshold(clamped)
+          mlOnThresholdRef.current = clamped
+        },
+        setMLOffThreshold: (v: number) => {
+          const clamped = Math.max(0.05, Math.min(0.95, v))
+          setMLOffThreshold(clamped)
+          mlOffThresholdRef.current = clamped
         },
       }}
     >

@@ -3,7 +3,7 @@ import { useSerial } from '../hooks/SerialContext'
 import './styles/Header.css'
 
 export default function Header() {
-  const { rotaConnected, transConnected, rotaData, transData, isMicActive, droneDetected, detectionMinHz, detectionMaxHz, audioDevices, selectedDeviceId, setSelectedDeviceId, refreshAudioDevices, detectionMode, template, similarity } = useSerial()
+  const { rotaConnected, transConnected, rotaData, transData, isMicActive, droneDetected, detectionMinHz, detectionMaxHz, audioDevices, selectedDeviceId, setSelectedDeviceId, refreshAudioDevices, detectionMode, template, similarity, mlConfidence } = useSerial()
 
   useEffect(() => { refreshAudioDevices() }, [refreshAudioDevices])
 
@@ -65,9 +65,19 @@ export default function Header() {
             <span className="mono">SIM: {(similarity * 100).toFixed(0)}%</span>
           </div>
         )}
+        {detectionMode === 'ml' && (
+          <div className="status-badge ml-badge">
+            <span className="mono">ML: {(mlConfidence * 100).toFixed(0)}%</span>
+          </div>
+        )}
         <div className="status-badge mode-badge">
-          <span className="mono">{detectionMode === 'custom' ? 'CUSTOM' : 'GENERIC'}</span>
+          <span className="mono">
+            {detectionMode === 'custom' ? 'CUSTOM' : detectionMode === 'ml' ? 'ML' : 'GENERIC'}
+          </span>
         </div>
+        <a href="/ml-calibration" className="status-badge nav-badge wip">
+          <span className="mono">ML CALIB (WIP) →</span>
+        </a>
       </div>
       <div className="header-time mono">
         {new Date().toLocaleTimeString()}
