@@ -1,4 +1,28 @@
+# Builds
 _build/
-.vscode/
-*.log
+dist/
+build/
+node_modules/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Entorno
 .env
+.env.*
+
+# Editor/SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# CMake generado
+cmake/**/.generated/
