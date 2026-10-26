@@ -141,4 +141,4 @@ ENABLE del A4988 va a GND (siempre habilitado).
 
 ## Licencia
 
-Propietaria.
+Propietaria. Todos los derechos reservados. Ver [`LICENSE`](./LICENSE).
