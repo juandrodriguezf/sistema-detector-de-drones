@@ -9,7 +9,22 @@ Sistema de detección y neutralización acústica de drones. Usa un micrófono c
 | [`HMI/`](./HMI) | Frontend React (Web Audio API + Web Serial API) |
 | [`m3.X/`](./m3.X) | Firmware PIC — eje rotacional (brushless + ZSX11H + PID) |
 | [`tralac.X/`](./tralac.X) | Firmware PIC — eje traslacional (NEMA 17 + A4988) |
+| [`ml/`](./ml) | Entrenamiento MLP offline (experimental / WIP) |
 | [`cmake/`](./cmake) | Configuración CMake para toolchain XC8 |
+
+## Estructura del repositorio
+
+```
+dron_v2/
+├── HMI/          # interfaz React + captura de audio + Web Serial
+├── m3.X/         # firmware eje rotacional (PIC16F18426)
+├── tralac.X/     # firmware eje traslacional (PIC16F18426)
+├── ml/           # entrenamiento MLP experimental
+├── cmake/        # build CMake para XC8
+└── README.md
+```
+
+Cada componente tiene su propio README con requisitos, compilación y protocolo.
 
 ## Arquitectura del sistema
 
@@ -50,6 +65,15 @@ Web Audio API → FFT → Detección (genérica o template)
 
 - **Genérico**: mide la energía en la banda 600–900 Hz
 - **Personalizado (template)**: el usuario carga un audio de dron, el sistema extrae su huella espectral (promedio FFT + picos armónicos) y la compara en vivo contra el micrófono usando similitud coseno y coincidencia de armónicos
+- **ML (experimental)**: clasificador MLP sobre MFCC. La captura, exportación de dataset y carga de pesos están integradas en la HMI, pero el pipeline **no está validado en campo** (ver [`ml/README.md`](./ml/README.md))
+
+## ML (experimental)
+
+> **WIP:** esta parte del proyecto está incompleta y no debe considerarse funcional para operación real.
+
+- `ml/train.py` entrena un MLP de 2 capas ocultas con features MFCC y exporta `weights.json`.
+- La HMI expone `/ml-calibration` para grabar clips etiquetados (`dron` / `no_dron`), exportar el dataset y cargar el modelo.
+- Limitaciones conocidas y formato del dataset en [`ml/README.md`](./ml/README.md).
 
 ## Mapa de conexiones
 
@@ -106,6 +130,14 @@ ENABLE del A4988 va a GND (siempre habilitado).
 - 2 × cables USB-UART
 - Micrófono MAX4466 con tarjeta de audio USB
 - Toolchain: XC8 v3.10, MPLAB X v6.30
+
+## Compilación de firmware
+
+1. Abrir `m3.X/` o `tralac.X/` en MPLAB X (el proyecto se define con el archivo `.mc3`).
+2. Verificar que `mcc_generated_files/` esté presente (está versionado).
+3. Compilar la configuración `default` y programar el PIC16F18426 por ICSP/SNAP.
+
+`Makefile`, `nbproject/`, `dist/` y `out/` se generan localmente y están ignorados por git. Detalle en [`m3.X/README.md`](./m3.X/README.md) y [`tralac.X/README.md`](./tralac.X/README.md).
 
 ## Licencia
 

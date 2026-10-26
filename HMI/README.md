@@ -2,6 +2,8 @@
 
 Interfaz humano-máquina para sistema de detección y neutralización acústica de drones. Monitoreo en tiempo real de dos ejes (rotacional y traslacional) con análisis FFT, espectrograma y detección por template matching espectral.
 
+> Incluye un módulo de calibración ML en `/ml-calibration`, marcado como **experimental / WIP**. No está validado en campo; ver [`../ml/README.md`](../ml/README.md).
+
 ## Requisitos
 
 | Requisito | Versión |
@@ -18,7 +20,7 @@ Interfaz humano-máquina para sistema de detección y neutralización acústica 
 ```bash
 git clone https://github.com/juandrodriguezf/sistema-detector-de-drones.git
 cd sistema-detector-de-drones/HMI
-nvm use        # si tienes nvm, o asgurate Node 18+
+nvm use        # si tienes nvm, o asegúrate de usar Node 18+
 npm install
 npm run dev    # http://localhost:5173
 ```
@@ -36,7 +38,17 @@ Desplegado en [https://dron-pi.vercel.app](https://dron-pi.vercel.app).
 
 ## Tecnologías
 
-React 19 · TypeScript 5.7 · Vite 6 · Recharts 2.15 · Web Audio API · Web Serial API
+React 19 · TypeScript 5.7 · Vite 6 · React Router 7 · Recharts 2.15 · Web Audio API · Web Serial API
+
+## Calibración ML (experimental)
+
+Ruta `/ml-calibration`. Permite:
+
+- Grabar clips etiquetados como `dron` o `no_dron` y extraer sus MFCC.
+- Exportar el dataset en JSON (compatible con `ml/train.py`).
+- Cargar un `weights.json` entrenado offline y probar la confianza en vivo.
+
+> **WIP:** el pipeline no está validado y la inferencia aún no aplica la normalización `_mean` / `_std` usada en el entrenamiento. Ver [`../ml/README.md`](../ml/README.md).
 
 ## Atajos de teclado
 
