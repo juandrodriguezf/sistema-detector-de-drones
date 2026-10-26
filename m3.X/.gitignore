@@ -14,7 +14,6 @@ documentos/AGENTS.md
 documentos/notas_tecnicas.md
 debug/
 queuelogs/
-mcc_generated_files/
 *.d
 *.p1
 .env

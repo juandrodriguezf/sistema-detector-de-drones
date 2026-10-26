@@ -12,5 +12,4 @@ cmake/**/CMake*
 out/
 debug/
 queuelogs/
-mcc_generated_files/
 .env
