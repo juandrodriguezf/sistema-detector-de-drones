@@ -251,7 +251,7 @@ def load_external_test(test_root):
                 continue
             for f in frames:
                 rows.append((f, label))
-    if not X_te:
+    if not rows:
         raise RuntimeError("0 frames en test externo merged-drone")
     X = np.stack([r[0] for r in rows]).astype(np.float32)
     y = np.array([r[1] for r in rows], dtype=np.int64)
