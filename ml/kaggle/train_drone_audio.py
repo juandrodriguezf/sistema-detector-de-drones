@@ -41,6 +41,17 @@ try:
 except Exception:
     librosa = None
 
+
+def dataset_download(slug):
+    """Descarga un dataset publico con kagglehub (sin credenciales).
+    Devuelve el path local, o None si kagglehub no esta disponible."""
+    try:
+        import kagglehub
+        return Path(kagglehub.dataset_download(slug))
+    except Exception as exc:
+        print(f"  kagglehub fallo para {slug}: {exc}")
+        return None
+
 FFT_SIZE = 4096
 HOP = 2048
 NUM_FILTERS = 26
@@ -194,6 +205,14 @@ def build_dataset(drone_root, test_root):
             yes_dir = mounts["yes_drone"]
         if "unknown" in mounts:
             unknown_dir = mounts["unknown"]
+    if not list(yes_dir.glob("*.wav")) if yes_dir.exists() else True:
+        print("dataset no montado: descargando amineipad via kagglehub...")
+        local = dataset_download("amineipad/drone-sound-audio-detection")
+        if local is not None:
+            hits = [d for d in local.rglob("yes_drone") if d.is_dir()]
+            if hits:
+                yes_dir = hits[0]
+                unknown_dir = hits[0].parent / "unknown"
     print(f"raiz_yes={yes_dir} wavs={len(list(yes_dir.glob('*.wav')))}")
     print(f"raiz_unknown={unknown_dir} wavs={len(list(unknown_dir.glob('*.wav')))}")
 
@@ -241,6 +260,14 @@ def build_dataset(drone_root, test_root):
 
 def load_external_test(test_root):
     """merged-drone: solo para reportar dominio real (16 kHz, mic array)."""
+    test_root = Path(test_root)
+    if not (test_root / "drone").exists():
+        print("dataset de test no montado: descargando merged-drone via kagglehub...")
+        local = dataset_download("gautamdhawan55/merged-drone")
+        if local is not None:
+            hits = [d for d in local.rglob("drone") if d.is_dir()]
+            if hits:
+                test_root = hits[0].parent
     rows = []
     for name, label in (("drone", 1), ("noise", 0)):
         for path in sorted((Path(test_root) / name).rglob("*.wav")):
