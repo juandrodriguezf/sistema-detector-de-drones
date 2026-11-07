@@ -157,10 +157,45 @@ def list_wavs(root, label, max_clips=None, rng=None):
     return [(w, label) for w in wavs]
 
 
+def find_mounts(base="/kaggle/input"):
+    """Devuelve {nombre_directorio: path} para dirs buscados en el input."""
+    wanted = {"yes_drone", "unknown", "drone", "noise", "binary_drone_audio"}
+    found = {}
+    base_path = Path(base)
+    for p in sorted(base_path.rglob("*")):
+        if p.is_dir() and p.name.lower() in wanted and p.name.lower() not in found:
+            found[p.name.lower()] = p
+    return found
+
+
+def diagnose_input(base="/kaggle/input"):
+    root = Path(base)
+    if not root.exists():
+        print(f"ATENCION: {base} NO EXISTE (datasets sin adjuntar?)")
+        return
+    print("== /kaggle/input ==")
+    for d in sorted(root.iterdir()):
+        print(f"  dataset: {d.name}")
+        for sub in sorted(d.glob("*")):
+            if sub.is_dir():
+                n_wav = len(list(sub.rglob("*.wav")))
+                print(f"    {d.name}/{sub.name}/  wavs={n_wav}")
+            else:
+                print(f"    {d.name}/{sub.name}")
+
+
 def build_dataset(drone_root, test_root):
     rng = random.Random(SEED)
     yes_dir = Path(drone_root) / "yes_drone"
     unknown_dir = Path(drone_root) / "unknown"
+    if not yes_dir.exists() or not list(yes_dir.glob("*.wav")):
+        mounts = find_mounts()
+        if "yes_drone" in mounts:
+            yes_dir = mounts["yes_drone"]
+        if "unknown" in mounts:
+            unknown_dir = mounts["unknown"]
+    print(f"raiz_yes={yes_dir} wavs={len(list(yes_dir.glob('*.wav')))}")
+    print(f"raiz_unknown={unknown_dir} wavs={len(list(unknown_dir.glob('*.wav')))}")
 
     drone_clips = list_wavs(yes_dir, 1)
     unknown_target = 3 * len(drone_clips)
@@ -185,6 +220,11 @@ def build_dataset(drone_root, test_root):
     print(f"FramesMFCC: {len(X)}  (dron={y.count(1)}, no_dron={y.count(0)})")
 
     # Split train/val a nivel de clip (20% de los clips de cada clase)
+    if not X:
+        raise RuntimeError(
+            "0 frames MFCC: no hay WAVs en el input. "
+            "Revisa el arbol /kaggle/input impreso arriba."
+        )
     X_np = np.stack(X).astype(np.float32)
     y_np = np.array(y, dtype=np.int64)
     clip_ids_np = np.array(clip_ids, dtype=np.int64)
@@ -211,6 +251,8 @@ def load_external_test(test_root):
                 continue
             for f in frames:
                 rows.append((f, label))
+    if not X_te:
+        raise RuntimeError("0 frames en test externo merged-drone")
     X = np.stack([r[0] for r in rows]).astype(np.float32)
     y = np.array([r[1] for r in rows], dtype=np.int64)
     return X, y
@@ -302,6 +344,7 @@ def main():
     args = ap.parse_args()
 
     np.random.seed(SEED)
+    diagnose_input()
     X_tr, y_tr, X_va, y_va = build_dataset(args.drone_root, args.test_root)
 
     mean = X_tr.mean(axis=0)
@@ -351,4 +394,17 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import traceback
+
+    try:
+        main()
+    except Exception:
+        tb = traceback.format_exc()
+        try:
+            with open("train_error.log", "w") as f:
+                f.write(tb)
+        except Exception:
+            pass
+        print(tb)
+        raise
+
