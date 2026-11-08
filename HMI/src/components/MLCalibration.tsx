@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useSerial } from '../hooks/SerialContext'
 import { AudioEngine } from '../audio/audioEngine'
-import { extractMFCC, mfccToArray } from '../utils/audioFeatures'
+import { mfccFromTimeDomain, mfccToArray } from '../utils/audioFeatures'
 import { predict, loadWeights, validateWeights, type MLPWeights } from '../utils/mlp'
 import './styles/MLCalibration.css'
 
@@ -64,9 +64,9 @@ export default function MLCalibration() {
       testTimerRef.current = window.setInterval(() => {
         const eng = audioEngineRef.current
         if (!eng || !eng.isActive()) return
-        const floatData = eng.getFloatFrequencyData()
+        const timeData = eng.getFloatTimeDomainData()
         const sr = sampleRateRef.current
-        const mfcc = extractMFCC(floatData, sr)
+        const mfcc = mfccFromTimeDomain(timeData, sr)
         const arr = mfccToArray(mfcc)
         setLiveMfcc(arr)
 
@@ -112,7 +112,7 @@ export default function MLCalibration() {
         setIsRecording(false)
         return
       }
-      recordBufferRef.current.push(eng.getFloatFrequencyData())
+      recordBufferRef.current.push(eng.getFloatTimeDomainData())
       recordFramesRef.current++
       if (recordFramesRef.current >= RECORD_FRAMES) {
         setIsRecording(false)
@@ -128,14 +128,14 @@ export default function MLCalibration() {
     const frames = recordBufferRef.current
     if (frames.length === 0) return
     const sr = sampleRateRef.current
-    const avgFloat = new Float32Array(frames[0].length)
+    const acc = new Float64Array(13)
     for (const frame of frames) {
-      for (let i = 0; i < frame.length; i++) {
-        avgFloat[i] += frame[i] / frames.length
+      const mfcc = mfccFromTimeDomain(frame, sr)
+      for (let i = 0; i < mfcc.length; i++) {
+        acc[i] += mfcc[i] / frames.length
       }
     }
-    const mfcc = extractMFCC(avgFloat, sr)
-    const arr = mfccToArray(mfcc)
+    const arr = Array.from(acc)
     const clip: RecordedClip = {
       id: `clip_${Date.now()}`,
       label: recordLabel,

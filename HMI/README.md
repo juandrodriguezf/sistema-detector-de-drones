@@ -48,7 +48,7 @@ Ruta `/ml-calibration`. Permite:
 - Exportar el dataset en JSON (compatible con `ml/train.py`).
 - Cargar un `weights.json` entrenado offline y probar la confianza en vivo.
 
-> **WIP:** el pipeline no está validado y la inferencia aún no aplica la normalización `_mean` / `_std` usada en el entrenamiento. Ver [`../ml/README.md`](../ml/README.md).
+> **WIP:** el pipeline no está validado en campo. Los pesos entrenados en Kaggle (`ml/weights.json`) incluyen `_mean`/`_std` y `predict()` ya los aplica; los pesos sin normalización generan un warning en consola. Ver [`../ml/README.md`](../ml/README.md).
 
 ## Atajos de teclado
 

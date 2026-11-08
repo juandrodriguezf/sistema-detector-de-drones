@@ -6,10 +6,18 @@ export class AudioEngine {
 
   async start(deviceId?: string): Promise<void> {
     const constraints: MediaStreamConstraints = {
-      audio: deviceId ? { deviceId: { exact: deviceId } } : true
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        // Sin procesamiento WebRTC: AGC/NS/EC colorean el espectro y rompen
+        // el MFCC (el modelo se entreno sobre audio crudo)
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
     }
     this.stream = await navigator.mediaDevices.getUserMedia(constraints)
-    this.context = new AudioContext()
+    // 44100 Hz para que el bank mel coincida con el del kernel de Kaggle
+    this.context = new AudioContext({ sampleRate: 44100 })
     this.analyser = this.context.createAnalyser()
     this.analyser.fftSize = 4096
     this.analyser.smoothingTimeConstant = 0
@@ -45,6 +53,13 @@ export class AudioEngine {
     if (!this.analyser) return new Uint8Array(0)
     const data = new Uint8Array(this.analyser.fftSize)
     this.analyser.getByteTimeDomainData(data)
+    return data
+  }
+
+  getFloatTimeDomainData(): Float32Array {
+    if (!this.analyser) return new Float32Array(0)
+    const data = new Float32Array(this.analyser.fftSize)
+    this.analyser.getFloatTimeDomainData(data)
     return data
   }
 

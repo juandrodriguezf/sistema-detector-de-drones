@@ -11,6 +11,10 @@ __pycache__/
 .venv/
 venv/
 
+# Datos descargados y artefactos de ML (no versionar datasets)
+ml/data/
+ml/out/
+
 # Entorno
 .env
 .env.*

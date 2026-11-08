@@ -5,6 +5,8 @@ export interface MLPWeights {
   b2: number[]
   W3: number[][]
   b3: number[]
+  _mean?: number[]
+  _std?: number[]
 }
 
 function matmul(a: number[], W: number[][]): number[] {
@@ -34,8 +36,23 @@ function softmax(x: number[]): number[] {
   return sum > 0 ? exps.map(v => v / sum) : exps
 }
 
+let warnedNoNorm = false
+
 export function predict(mfcc: number[], weights: MLPWeights): number[] {
-  let h1 = matmul(mfcc, weights.W1)
+  let x = mfcc
+  if (weights._mean && weights._std) {
+    x = mfcc.map(
+      (v, i) => (v - (weights._mean?.[i] ?? 0)) / (weights._std?.[i] || 1)
+    )
+  } else if (!warnedNoNorm) {
+    warnedNoNorm = true
+    console.warn(
+      '[mlp] weights sin _mean/_std: la inferencia corre sin normalizacion ' +
+        '(los pesos generados por el kernel de Kaggle incluyen ambas)'
+    )
+  }
+
+  let h1 = matmul(x, weights.W1)
   h1 = addBias(h1, weights.b1)
   h1 = relu(h1)
 
