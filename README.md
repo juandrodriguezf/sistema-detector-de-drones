@@ -65,15 +65,18 @@ Web Audio API → FFT → Detección (genérica o template)
 
 - **Genérico**: mide la energía en la banda 600–900 Hz
 - **Personalizado (template)**: el usuario carga un audio de dron, el sistema extrae su huella espectral (promedio FFT + picos armónicos) y la compara en vivo contra el micrófono usando similitud coseno y coincidencia de armónicos
-- **ML (experimental)**: clasificador MLP sobre MFCC. La captura, exportación de dataset y carga de pesos están integradas en la HMI, pero el pipeline **no está validado en campo** (ver [`ml/README.md`](./ml/README.md))
+- **ML (experimental)**: clasificador MLP sobre MFCC. La inferencia en la HMI replica la extracción de features del kernel de Kaggle y aplica la normalización `_mean`/`_std` de los pesos. El pipeline **no está validado en campo** (ver [`ml/README.md`](./ml/README.md))
 
 ## ML (experimental)
 
 > **WIP:** esta parte del proyecto está incompleta y no debe considerarse funcional para operación real.
 
-- `ml/train.py` entrena un MLP de 2 capas ocultas con features MFCC y exporta `weights.json`.
+- El kernel [`juandrodriguezf/dron-hmi-ml-train-v1`](./ml/kaggle/train_drone_audio.py) entrena en Kaggle (free tier, CPU, sin GPU) un MLP 13→32→16→2 sobre MFCC idénticos a los de la HMI (misma ventana Blackman 4096, bank mel HTK de 26 filtros, DCT-II de 13 coeficientes).
+- Último run: **acc de validación 95.70%** (early stop ep31) sobre 109.019 frames del dataset amineipad (MIT). El test externo merged-drone da 46.5% por gap de dominio (16 kHz mic array vs 44.1 kHz streaming).
+- `ml/weights.json` versionado es la salida del kernel, con `_mean`/`_std` que el HMI ya aplica en la inferencia.
+- Datasets y licencias: entrenamiento con [`amineipad/drone-sound-audio-detection`](https://www.kaggle.com/datasets/amineipad/drone-sound-audio-detection) (MIT); `gautamdhawan55/merged-drone` (licencia desconocida) solo como test externo dentro de Kaggle, nunca entrenamiento ni redistribución.
 - La HMI expone `/ml-calibration` para grabar clips etiquetados (`dron` / `no_dron`), exportar el dataset y cargar el modelo.
-- Limitaciones conocidas y formato del dataset en [`ml/README.md`](./ml/README.md).
+- Limitaciones conocidas, métricas y flujo completo en [`ml/README.md`](./ml/README.md).
 
 ## Mapa de conexiones
 
