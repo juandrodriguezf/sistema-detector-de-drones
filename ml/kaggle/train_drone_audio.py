@@ -227,7 +227,7 @@ def build_dataset(drone_root, test_root):
     for clips in (drone_clips, unknown_clips):
         for path, label in clips:
             try:
-                frames = mfcc_frames(load_mono(path))
+                frames = mfcc_frames(load_mono(path), TARGET_SR)
             except Exception as exc:
                 print(f"  skip {path.name}: {exc}")
                 continue
@@ -272,7 +272,8 @@ def load_external_test(test_root):
     for name, label in (("drone", 1), ("noise", 0)):
         for path in sorted((Path(test_root) / name).rglob("*.wav")):
             try:
-                frames = mfcc_frames(load_mono(path), max_frames=MAX_FRAMES_TEST_PER_CLIP)
+                frames = mfcc_frames(load_mono(path), TARGET_SR,
+                                     max_frames=MAX_FRAMES_TEST_PER_CLIP)
             except Exception as exc:
                 print(f"  skip test {path.name}: {exc}")
                 continue
