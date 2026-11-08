@@ -119,3 +119,114 @@ export function extractMFCC(
 export function mfccToArray(mfcc: Float32Array): number[] {
   return Array.from(mfcc)
 }
+
+interface FFTPlan {
+  size: number
+  window: Float64Array
+  rev: Uint32Array
+}
+
+let fftPlan: FFTPlan | null = null
+
+function getFFTPlan(fftSize: number): FFTPlan {
+  if (fftPlan && fftPlan.size === fftSize) return fftPlan
+  const window = new Float64Array(fftSize)
+  for (let i = 0; i < fftSize; i++) {
+    window[i] =
+      0.42 -
+      0.5 * Math.cos((2 * Math.PI * i) / (fftSize - 1)) +
+      0.08 * Math.cos((4 * Math.PI * i) / (fftSize - 1))
+  }
+  const bits = Math.round(Math.log2(fftSize))
+  const rev = new Uint32Array(fftSize)
+  for (let i = 0; i < fftSize; i++) {
+    let r = 0
+    for (let b = 0; b < bits; b++) {
+      r |= ((i >> b) & 1) << (bits - 1 - b)
+    }
+    rev[i] = r
+  }
+  fftPlan = { size: fftSize, window, rev }
+  return fftPlan
+}
+
+function fftInPlace(re: Float64Array, im: Float64Array, rev: Uint32Array): void {
+  const n = re.length
+  for (let i = 0; i < n; i++) {
+    const j = rev[i]
+    if (i < j) {
+      let t = re[i]
+      re[i] = re[j]
+      re[j] = t
+      t = im[i]
+      im[i] = im[j]
+      im[j] = t
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (-2 * Math.PI) / len
+    const wr = Math.cos(ang)
+    const wi = Math.sin(ang)
+    const half = len >> 1
+    for (let i = 0; i < n; i += len) {
+      let cr = 1
+      let ci = 0
+      for (let k = 0; k < half; k++) {
+        const a = i + k
+        const b = a + half
+        const vr = re[b] * cr - im[b] * ci
+        const vi = re[b] * ci + im[b] * cr
+        re[b] = re[a] - vr
+        im[b] = im[a] - vi
+        re[a] += vr
+        im[a] += vi
+        const ncr = cr * wr - ci * wi
+        ci = cr * wi + ci * wr
+        cr = ncr
+      }
+    }
+  }
+}
+
+/**
+ * MFCC a partir de muestras de tiempo (misma cadena que el kernel de Kaggle
+ * ml/kaggle/train_drone_audio.py: ventana Blackman (n-1), FFT de fftSize,
+ * potencia |X|^2 de los primeros fftSize/2 bins, bank mel HTK de 26 filtros
+ * (100 Hz -> Nyquist), log con piso 1e-10 (tambien sobre el log, como el
+ * kernel) y DCT-II sin normalizacion de 13 coeficientes).
+ */
+export function mfccFromTimeDomain(
+  samples: Float32Array | Float64Array,
+  sampleRate: number,
+  fftSize: number = 4096,
+  numFilters: number = 26,
+  numCoeffs: number = 13
+): Float32Array {
+  const plan = getFFTPlan(fftSize)
+  const re = new Float64Array(fftSize)
+  const im = new Float64Array(fftSize)
+  const n = Math.min(samples.length, fftSize)
+  for (let i = 0; i < n; i++) {
+    re[i] = samples[i] * plan.window[i]
+  }
+  fftInPlace(re, im, plan.rev)
+
+  const power = new Float32Array(fftSize / 2)
+  for (let k = 0; k < power.length; k++) {
+    const p = re[k] * re[k] + im[k] * im[k]
+    power[k] = isFinite(p) ? Math.max(p, 1e-10) : 1e-10
+  }
+
+  const filters = getMelFilterBank(numFilters, fftSize, sampleRate)
+  const melEnergies = new Float32Array(filters.length)
+  for (let m = 0; m < filters.length; m++) {
+    let energy = 0
+    const len = Math.min(power.length, filters[m].length)
+    for (let i = 0; i < len; i++) {
+      energy += power[i] * filters[m][i]
+    }
+    melEnergies[m] = Math.max(Math.log(Math.max(energy, 1e-10)), 1e-10)
+  }
+
+  return applyDCT(melEnergies, numCoeffs)
+}

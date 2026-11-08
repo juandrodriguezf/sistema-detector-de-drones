@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react'
 import { AudioEngine } from '../audio/audioEngine'
-import { extractMFCC, mfccToArray } from '../utils/audioFeatures'
+import { mfccFromTimeDomain, mfccToArray } from '../utils/audioFeatures'
 import { predict, type MLPWeights } from '../utils/mlp'
 
 function spectralSimilarity(a: Float32Array, b: Float32Array, hzPerBin: number): number {
@@ -400,7 +400,8 @@ export function SerialProvider({ children }: { children: React.ReactNode }) {
     let mlProbVal = 0
     const isML = detectionModeRef.current === 'ml' && mlModelRef.current !== null
     if (isML) {
-      const mfcc = extractMFCC(floatData, SAMPLE_RATE, FFT_SIZE)
+      const timeFloat = engine.getFloatTimeDomainData()
+      const mfcc = mfccFromTimeDomain(timeFloat, SAMPLE_RATE, FFT_SIZE)
       const probs = predict(mfccToArray(mfcc), mlModelRef.current!)
       mlProbVal = probs[1]
       mlConfidenceRef.current = mlProbVal
